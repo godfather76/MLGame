@@ -2,6 +2,7 @@ from GUI import main_widgets
 from GUI import utility_classes as util
 from GUI import qt_classes as qt
 from SQL import db_utilities as dbutil
+from GUI import game_main
 
 
 class CharCreateWidget(util.GroupBoxWidget):
@@ -238,6 +239,10 @@ class CharCreateWidget(util.GroupBoxWidget):
         self.goto(self.root.main_splash_widget,
                        main_widgets.MainSplashWidget)
 
+    def go_to_game(self):
+        self.goto(self.root.main_game_widget,
+                  game_main.MainGameWidget)
+
     @qt.QtCore.Slot()
     def create_new_char(self):
         name = self.name_entry.text()
@@ -270,7 +275,7 @@ class CharCreateWidget(util.GroupBoxWidget):
                                    columns='charName',
                                    where=f'lower(charName)=lower("{name}")')
         if not res:
-            self.root.sql.insert('main',
+            insert = self.root.sql.insert('main',
                                  table='characters',
                                  data={'user_id': self.root.curr_user_id,
                                        'charName': name,
@@ -283,6 +288,23 @@ class CharCreateWidget(util.GroupBoxWidget):
                                        'booksmarts': booksmarts,
                                        'streetsmarts': streetsmarts,
                                        'appeal': appeal})
+            # If insert returned False, there is an issue
+            if not insert:
+                # Pop error
+                qt.QtWidgets.QMessageBox.warning(self.root,
+                                                 'Database Error',
+                                                 'Something went wrong with entering your new character into '
+                                                 'the database. You may need to reinstall the game.')
+                return
+            # Otherwise, we'll get the char_id from the db, store char_id and name, and load the main game screen
+            this_char = self.root.sql.select('main',
+                                           table='characters',
+                                           columns=['char_id', 'charName'],
+                                           where=f'charName="{name}"')
+
+            self.root.curr_char_id = this_char[0][0]
+            self.root.curr_char_name = this_char[0][1]
+            self.go_to_game()
         else:
             qt.QtWidgets.QMessageBox.warning(self.root,
                                              'Error',
