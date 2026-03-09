@@ -13,13 +13,14 @@ class GroupBoxWidget(qt.QtWidgets.QWidget):
         # Add a vertical box layout to our group box
         self.gblayout = qt.QtWidgets.QVBoxLayout(self.gb)
 
-    def end(self):
+    def end(self, var):
         self.close()
         self.deleteLater()
+        var = None
 
     @qt.QtCore.Slot()
     def goto(self, var, widget):
-        self.end()
+        self.end(var)
         self.load_page(var, widget)
 
     @qt.QtCore.Slot()

@@ -3,6 +3,7 @@ from GUI import main_widgets
 from GUI import utility_classes as util
 from GUI import qt_classes as qt
 from SQL import db_utilities as dbutil
+from GUI import game_main
 
 
 class CharSelectWidget(util.GroupBoxWidget):
@@ -27,7 +28,7 @@ class CharSelectWidget(util.GroupBoxWidget):
             go_btn = qt.PushButton(self.root,
                                    text='Go!',
                                    layout=char_select_layout,
-                                   func=self.go_to_game)
+                                   func=self.load_and_go)
             # Get our characters list and sort it alphabetically
             characters = sorted([x[0] for x  in self.check_for_chars()])
             # Add the list to the dropdown
@@ -67,6 +68,10 @@ class CharSelectWidget(util.GroupBoxWidget):
         self.load_page(self.root.main_splash_widget,
                        main_widgets.MainSplashWidget)
 
+    def go_to_game(self):
+        self.goto(self.root.main_game_widget,
+                  game_main.MainGameWidget)
+
     def check_for_chars(self):
         dbutil.check_chars_table(self.root.sql)
         where_dict = {'user_id': self.root.curr_user_id}
@@ -80,10 +85,12 @@ class CharSelectWidget(util.GroupBoxWidget):
         self.goto(self.root.char_create_widget,
                   char_create.CharCreateWidget)
 
-    def go_to_game(self):
+    def load_and_go(self):
         char_name = self.character_dropdown.currentText()
-        self.root.curr_char = self.root.sql.select('main',
-                                                   table='Characters',
-                                                   columns='char_id',
-                                                   where={'charName': char_name})[0][0]
-        print(f"Entering game as {char_name}")
+        this_char = self.root.sql.select('main',
+                                                      table='Characters',
+                                                      columns=['char_id', 'charName'],
+                                                      where={'charName': char_name})
+        self.root.curr_char_id = this_char[0][0]
+        self.root.curr_char_name = this_char[0][1]
+        self.go_to_game()

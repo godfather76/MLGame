@@ -18,6 +18,7 @@ class MainWindow(qt.QtWidgets.QMainWindow):
     char_select_widget = None
     login_widget = None
     user_create_widget = None
+    main_game_widget = None
     # these variables are specifically for screen position:
     wd = 400
     ht = 200
@@ -25,7 +26,8 @@ class MainWindow(qt.QtWidgets.QMainWindow):
     y = 0
     # user/character data variables
     curr_user_id = None
-    curr_char = None
+    curr_char_id = None
+    curr_char_name = None
 
     def __init__(self, main_app, *args, **kwargs):
         # This is root
