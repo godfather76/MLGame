@@ -33,7 +33,7 @@ class OKCancelDialog(QtWidgets.QMessageBox):
         self.exec()
 
 class GroupBox(QtWidgets.QGroupBox):
-    def __init__(self, root, parent=None, title='Enter Title', layout=None, alignment=None, *args, **kwargs):
+    def __init__(self, root, parent=None, title='Enter Title', layout=None, loc=None, alignment=None, *args, **kwargs):
         self.root = root
         if not alignment:
             alignment = QtCore.Qt.AlignCenter
@@ -42,17 +42,23 @@ class GroupBox(QtWidgets.QGroupBox):
         if not layout:
             self.show()
         else:
-            layout.addWidget(self)
+            if loc:
+                layout.addWidget(self, loc[0], loc[1])
+            else:
+                layout.addWidget(self)
 
 
 class Widget(QtWidgets.QWidget):
-    def __init__(self, root, parent=None, layout=None, *args, **kwargs):
+    def __init__(self, root, parent=None, layout=None, loc=None, *args, **kwargs):
         self.root = root
         super().__init__(parent, *args, **kwargs)
         if not layout:
             self.show()
         else:
-            layout.addWidget(self)
+            if loc:
+                layout.addWidget(self, loc[0], loc[1])
+            else:
+                layout.addWidget(self)
 
 
 class ComboBox(QtWidgets.QComboBox):
@@ -67,17 +73,20 @@ class ComboBox(QtWidgets.QComboBox):
 
 
 class DateEdit(QtWidgets.QDateEdit):
-    def __init__(self, root, parent=None, layout=None, *args, **kwargs):
+    def __init__(self, root, parent=None, layout=None, loc=None, *args, **kwargs):
         self.root = root
         super().__init__(parent, *args, **kwargs)
         if not layout:
             self.show()
         else:
-            layout.addWidget(self)
+            if loc:
+                layout.addWidget(self, loc[0], loc[1])
+            else:
+                layout.addWidget(self)
 
 
 class Label(QtWidgets.QLabel):
-    def __init__(self, root, parent=None, text='Enter Text', layout=None, alignment=None, *args, **kwargs):
+    def __init__(self, root, parent=None, text='Enter Text', layout=None, loc=None, alignment=None, *args, **kwargs):
         self.root = root
         if not alignment:
             alignment = QtCore.Qt.AlignCenter
@@ -85,21 +94,27 @@ class Label(QtWidgets.QLabel):
         if not layout:
             self.show()
         else:
-            layout.addWidget(self)
+            if loc:
+                layout.addWidget(self, loc[0], loc[1])
+            else:
+                layout.addWidget(self)
 
 
 class LineEdit(QtWidgets.QLineEdit):
-    def __init__(self, root, parent=None, text=None, placeholderText='Enter Text Here', layout=None, *args, **kwargs):
+    def __init__(self, root, parent=None, text=None, placeholderText='Enter Text Here', layout=None, loc=None, *args, **kwargs):
         self.root = root
         super().__init__(text=text, placeholderText=placeholderText, *args, **kwargs)
         if not layout:
             self.show()
         else:
-            layout.addWidget(self)
+            if loc:
+                layout.addWidget(self, loc[0], loc[1])
+            else:
+                layout.addWidget(self)
 
 
 class PushButton(QtWidgets.QPushButton):
-    def __init__(self, root, parent=None, text='Enter Text', layout=None, func=default_func, *args, **kwargs):
+    def __init__(self, root, parent=None, text='Enter Text', layout=None, loc=None, func=default_func, *args, **kwargs):
         self.root = root
         super().__init__(parent, text=text, *args, **kwargs)
         # func must be @QtCore.Slot()
@@ -107,20 +122,26 @@ class PushButton(QtWidgets.QPushButton):
         if not layout:
             self.show()
         else:
-            layout.addWidget(self)
+            if loc:
+                layout.addWidget(self, loc[0], loc[1])
+            else:
+                layout.addWidget(self)
 
 
 class RadioButton(QtWidgets.QRadioButton):
-    def __init__(self, root, parent=None, text='Enter Text', layout=None, *args, **kwargs):
+    def __init__(self, root, parent=None, text='Enter Text', layout=None, loc=None, *args, **kwargs):
         self.root = root
         super().__init__(parent, text=text, *args, **kwargs)
         if not layout:
             self.show()
         else:
-            layout.addWidget(self)
+            if loc:
+                layout.addWidget(self, loc[0], loc[1])
+            else:
+                layout.addWidget(self)
 
 class SpinBox(QtWidgets.QSpinBox):
-    def __init__(self, root, parent=None, layout=None, alignment=QtCore.Qt.AlignmentFlag.AlignCenter, *args, **kwargs):
+    def __init__(self, root, parent=None, layout=None, loc=None, alignment=QtCore.Qt.AlignmentFlag.AlignCenter, *args, **kwargs):
         super().__init__(parent, *args, **kwargs)
         if not layout:
             self.show()
@@ -130,23 +151,42 @@ class SpinBox(QtWidgets.QSpinBox):
 
 
 class TextEdit(QtWidgets.QTextEdit):
-    def __init__(self, root, parent=None, placeholderText='Enter Text', layout=None, *args, **kwargs):
+    def __init__(self, root, parent=None, placeholderText='Enter Text', layout=None, loc=None, *args, **kwargs):
         self.root = root
         super().__init__(parent, placeholderText=placeholderText, *args, **kwargs)
         if not layout:
             self.show()
         else:
-            layout.addWidget(self)
+            if loc:
+                layout.addWidget(self, loc[0], loc[1])
+            else:
+                layout.addWidget(self)
 
 
 class TimeEdit(QtWidgets.QTimeEdit):
-    def __init__(self, root, parent=None, layout=None, *args, **kwargs):
+    def __init__(self, root, parent=None, layout=None, loc=None, *args, **kwargs):
         self.root = root
         super().__init__(parent, *args, **kwargs)
         if not layout:
             self.show()
         else:
-            layout.addWidget(self)
+            if loc:
+                layout.addWidget(self, loc[0], loc[1])
+            else:
+                layout.addWidget(self)
+
+class ToolButton(QtWidgets.QToolButton):
+    def __init__(self, root, parent=None, text='Tool Button', func=default_func, layout=None, loc=None, *args, **kwargs):
+        self.root = root
+        super().__init__(parent, *args, **kwargs)
+        self.clicked.connect(func)
+        if not layout:
+            self.show()
+        else:
+            if loc:
+                layout.addWidget(self, loc[0], loc[1])
+            else:
+                layout.addWidget(self)
 
 
 class TestWindow(QtWidgets.QMainWindow):
