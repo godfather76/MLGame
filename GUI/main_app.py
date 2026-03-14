@@ -19,6 +19,7 @@ class MainWindow(qt.QtWidgets.QMainWindow):
     login_widget = None
     user_create_widget = None
     main_game_widget = None
+    conversation_widget = None
     # these variables are specifically for screen position:
     wd = 400
     ht = 200
@@ -56,8 +57,6 @@ class MainWindow(qt.QtWidgets.QMainWindow):
         self.setStyleSheet(qss.readAll())
         # show our window
         self.show()
-        # Needed so the x will exit the program
-        sys.exit(self.main_app.exec())
 
     def set_center(self):
         center = qt.QtGui.QScreen.availableGeometry(qt.QtWidgets.QApplication.primaryScreen()).center()

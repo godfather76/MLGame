@@ -16,16 +16,14 @@ class GroupBoxWidget(qt.QtWidgets.QWidget):
     def end(self, var):
         self.close()
         self.deleteLater()
-        var = None
+        # var = None
 
     @qt.QtCore.Slot()
-    def goto(self, var, widget):
+    def goto(self, var, widget, *args, **kwargs):
         self.end(var)
         self.load_page(var, widget)
 
     @qt.QtCore.Slot()
-    def load_page(self, var, widget):
+    def load_page(self, var, widget, *args, **kwargs):
         var = widget(self.root)
         self.root.setCentralWidget(var)
-
-

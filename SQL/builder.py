@@ -221,6 +221,7 @@ class Build:
             sql += where_builder(where, case_sens, where_and)
 
         executed = self.check_commit(db_alias, sql)
+
         if not executed:
             print(f"SQL update failed: {sql}")
             return False
