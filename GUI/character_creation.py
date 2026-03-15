@@ -288,6 +288,9 @@ class CharCreateWidget(util.GroupBoxWidget):
                                        'booksmarts': booksmarts,
                                        'streetsmarts': streetsmarts,
                                        'appeal': appeal})
+            inv_insert = self.root.sql.insert('main',
+                                              table='Inventories',
+                                              data={'char_id': self.root.curr_char_id})
             # If insert returned False, there is an issue
             if not insert:
                 # Pop error

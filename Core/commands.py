@@ -22,6 +22,59 @@ class CommandStructure:
     def testify(self, *args, **kwargs):
         self.main_game.update_main('testify complete!')
 
+    def get(self, *args, **kwargs):
+        user_in = arg_cruncher(args[0])
+        if not user_in:
+            self.main_game.update_main('Get what? Type "get [item name]" to get something.')
+        # Check items for things user_in could be
+        item = helpers.possible_from_userin(self.main_game, user_in, self.main_game.items)
+        if not item:
+            # For fun, if it's not an item, we'll check people for user_in
+            person = helpers.possible_from_userin(self.main_game, user_in, self.main_game.people)
+            if person:
+                self.main_game.update_main(f'{person} is a person. You cannot pick them up. How rude!')
+            return
+        pickup_check = self.root.sql.select('main',
+                                    table='Items',
+                                    columns=['stackSize', 'pickup', 'nopickup_reason'],
+                                    where={'itemName': item})[0]
+        # If there's a 0 in pickup,
+        if not pickup_check[1]:
+            # Display no pickup reason
+            self.main_game.update_main(pickup_check[2])
+        # Otherwise
+        else:
+            # helper function to get bag contents and parse them
+            bag_contents = helpers.get_bag_contents(self.root, self.main_game)
+            # A list with no quantities
+            just_items = [x[1] for x in bag_contents]
+            # Get character's bagMax from Inventories table
+            bag_max = self.root.sql.select('main',
+                                           table='Inventories',
+                                          columns='bagMax',
+                                           where={'char_id': self.root.curr_char_id})[0][0]
+            # First check bag_contents for the item
+            if item in just_items:
+                # Check for stack size limit
+                current_stack = bag_contents[just_items.index(item)][0]
+                # Check stackSize of item and compare
+                stack_size = self.root.sql.select('main',
+                                                  table='Items',
+                                                  columns='stackSize',
+                                                  where={'itemName': item})[0][0]
+                # If the current stack is less than allowed stack size,
+                if current_stack < stack_size:
+                    # Add one to the quantity
+                    bag_contents[just_items.index(item)][0] += 1
+                    # Create a write string, separated by
+                    write_string = helpers.inventory_entry_maker(bag_contents)
+                    self.root.sql.update('main',
+                                         table='Inventories',
+                                         data={'bagContents': write_string})
+                else:
+                    pass
+
+
     @qt.QtCore.Slot()
     def inventory(self, *args, **kwargs):
         self.main_game.update_main('Opening Inventory...')
