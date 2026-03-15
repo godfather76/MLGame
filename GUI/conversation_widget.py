@@ -10,6 +10,9 @@ class ConversationWidget(util.GroupBoxWidget):
         self.curr_display = ''
         self.main_window = None
         self.button_container = None
+        # Button dictionary will be used to easily hide all the buttons we put in the button_container during a
+        # given conversation
+        self.button_dict = {}
         self.root = root
         self.conversations = conversations.Conversations(self.root, self)
         self.main_display_layout()
