@@ -542,7 +542,7 @@ class Build:
                             else:
                                 data[key]['default'] = False
                 elif isinstance(value, dict):
-                    data[key] = {k.lower(): v for k, v in data[key].items()}
+                    data[key] = {k.lower(): v for k, v in data[key].room_items()}
                     if 'alias' not in data[key].keys():
                         print("You must choose an alias for each database. Default and backup are optional.")
                         exit()

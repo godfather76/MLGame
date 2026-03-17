@@ -6,6 +6,7 @@ from GUI import main_widgets
 from GUI import utility_classes as util
 from GUI import qt_classes as qt
 from Core import commands
+from Core import helpers
 from Core import conversations
 from Core import item_uses
 from Core import room_events
@@ -26,7 +27,7 @@ class MainGameWidget(util.GroupBoxWidget):
         # Container to hold the two panels (main and right)
         self.lookables = None
         self.exits = None
-        self.items = None
+        self.room_items = None
         self.people = None
         self.se_btn = None
         self.s_btn = None
@@ -122,16 +123,17 @@ class MainGameWidget(util.GroupBoxWidget):
         # Split the people in this room (from the DB) into a list by ;
         self.people = self.room_data['people'].split('; ')
         # Do the same for the items in this room
-        self.items = self.room_data['items'].split('; ')
+        # self.items = self.room_data['items'].split('; ')
         # Room check is a sanity thing. It will check the items in the room against the DB and won't say there's an item
         # or person in the room if the name doesn't match a DB entry
+        self.room_items = {}
         self.room_check()
         # Add people, items, and exits to the list after making them into ("X, Y, and Z" or "X and Y" or "X")
-        self.curr_display += f'\nPeople: {self.list_string_maker(self.people)}'
-        self.curr_display += f'\nItems: {self.list_string_maker(self.items)}'
-        self.curr_display += f'\nExits: {self.list_string_maker(display_exits)}\n'
+        self.curr_display += f'\nPeople: {helpers.display_string_maker(self.root, self.people)}'
+        self.curr_display += f'\nItems: {helpers.display_string_maker(self.root, self.room_items)}'
+        self.curr_display += f'\nExits: {helpers.display_string_maker(self.root, display_exits)}\n'
         # This list is just here for ease in look command
-        self.lookables = self.items + self.people
+        self.lookables = list(self.room_items.keys()) + self.people
         # Return the data
         return self.room_data['locationName'], self.room_data['event']
 
@@ -139,17 +141,6 @@ class MainGameWidget(util.GroupBoxWidget):
         # goto ends the current window and moves to the other.
         self.goto(self.root.conversation_widget,
                   conversation_widget.ConversationWidget)
-
-    def list_string_maker(self, item_list):
-        # This means no result, so return None
-        if not item_list or item_list == ['']:
-            return 'None'
-        if len(item_list) == 1:
-            return item_list[0]
-        elif len(item_list) == 2:
-            return f'{item_list[0]} and {item_list[1]}'
-        else:
-            return f'{', '.join(item_list[:-1])}, and {item_list[-1]}'
 
     def refresh(self):
         self.char_data = self.get_char_data()
@@ -173,6 +164,8 @@ class MainGameWidget(util.GroupBoxWidget):
         qt.QtCore.QTimer.singleShot(0, self.entry_box.setFocus)
 
     def room_check(self):
+        # WORKING HERE
+        # MAybe make it in here so that it can identify multiple of an item like it does everywhere else
         # Check People
         db_people = [x[0] for x in self.root.sql.select('main',
                                                         table='NPCs',
@@ -183,7 +176,13 @@ class MainGameWidget(util.GroupBoxWidget):
         db_items = [x[0] for x in self.root.sql.select('main',
                                                        table='Items',
                                                        columns='itemName')]
-        self.items = [x for x in self.items if x in db_items]
+        db_items_plural = [x[0] for x in self.root.sql.select('main',
+                                                              table='Items',
+                                                              columns='itemNamePlural')]
+
+        self.room_items = helpers.item_dict_maker(self.root, self.room_data['items'])
+
+        self.room_items = {x: y for x, y in self.room_items.items() if x in db_items or x in db_items_plural}
 
     def send_command(self):
         # split user input by spaces
