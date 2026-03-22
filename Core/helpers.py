@@ -1,3 +1,6 @@
+from GUI import qt_classes as qt
+
+
 def db_write_string_maker(item_data, *args, **kwargs):
     # If item_data is a dictionary, we will append its contents to a list
     if isinstance(item_data, dict):
@@ -17,6 +20,58 @@ def db_write_string_maker(item_data, *args, **kwargs):
 
     return '; '.join(item_data)
 
+
+@qt.QtCore.Slot()
+def change_reputation(root, conv_window, conversation, amount, text):
+    for btn in conversation.response_dict[conversation.reputation]['buttons']:
+        btn.hide()
+    try:
+        conversation.reputation += amount
+    except TypeError:
+        end_conversation(root, conv_window, conversation)
+        return
+    # self.conv_window.main_window.clear()
+    conv_window.update_main(text)
+    conv_window.update_main(conversation.response_dict[conversation.reputation]['text'])
+    conversation_button_builder(root, conv_window, conversation)
+
+def conversation_had_check(root, conversation, *args, **kwargs):
+    res = root.sql.select('main',
+                          table='ConversationsHad',
+                          where={'char_id': root.curr_char_id,
+                                 'convName': conversation.current_conversation},
+                          where_and=True)
+    if res:
+        return True
+    else:
+        return False
+
+def conversation_button_builder(root, conv_window, conversation, *args, **kwargs):
+    for btn_info in conversation.response_dict[conversation.reputation]['button_info']:
+        text, rep = btn_info
+        btn = qt.PushButton(root,
+                            text=text,
+                            layout=conv_window.button_container,
+                            func=lambda event, r=root, w=conv_window,
+                                        c=conversation, x=rep, y=text: change_reputation(r, w, c, x, y))
+        conversation.response_dict[conversation.reputation]['buttons'].append(btn)
+
+def create_response_dict(root, conversation, *args, **kwargs):
+    # Get info for this conversation from the db.
+    res = root.sql.select('main',
+                          table='Conversations',
+                          where={'conversationName': conversation.current_conversation})
+    # Get the column names from the db
+    col_names= root.sql.column_names('main',
+                                     table='Conversations')
+
+    res_dict_list = [{x: y for x, y in zip(col_names, res[i])} for i in range(len(res))]
+    response_dict = {response['keyNumber']: {'text': response['text'],
+                                            'button_info': [(response[f'button{i}_text'],
+                                                             response[f'button{i}_value']) for i in range(1, 5)
+                                                            if response[f'button{i}_text']],
+                                            'buttons': []} for response in res_dict_list}
+    return response_dict
 
 def display_string_maker(root, item_data, *args, **kwargs):
     # If item_data is a dictionary, we will append its contents to a list
@@ -45,6 +100,13 @@ def display_string_maker(root, item_data, *args, **kwargs):
         return f'{item_data[0]} and {item_data[1]}'
     else:
         return f'{', '.join(item_data[:-1])}, and {item_data[-1]}'
+
+def end_conversation(root, conv_window, conversation, *args, **kwargs):
+    root.sql.insert('main',
+                    table='ConversationsHad',
+                    data={'convName': conversation.current_conversation,
+                          'char_id': root.curr_char_id})
+    conv_window.go_to_game()
 
 
 def get_bag_contents(root, *args, **kwargs):
@@ -145,15 +207,18 @@ def item_dict_maker(root, item_str, *args, **kwargs):
 
 
 def possible_from_userin(main_game, user_in, full_list, suppress_update=False, source='this room'):
+    qty, user_in = user_in
+    if isinstance(full_list, dict):
+        full_list = list(full_list.keys())
     possible = [x for x in full_list if x.lower().strip().startswith(user_in)]
     # If nothing startswith user in
     if len(possible) == 0:
         # Split each into its separate words
         split_list = [x.split(' ') for x in full_list]
         # Loop through with enumerate
-        for i, list in enumerate(split_list):
+        for i, l in enumerate(split_list):
             # Make everything lowercase
-            this_list = [x.lower() for x in list]
+            this_list = [x.lower() for x in l]
             # If user in is one of the words, add it the full_list version to our possible matches
             if user_in in this_list:
                 possible.append(full_list[i])
