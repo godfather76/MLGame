@@ -5,7 +5,7 @@ from Core import conversations
 
 class ConversationWidget(util.GroupBoxWidget):
     def __init__(self, root, *args, **kwargs):
-        super().__init__(root, *args, **kwargs)
+        super().__init__(root, title='Conversation', *args, **kwargs)
         self.back_button = None
         self.curr_display = ''
         self.main_window = None
