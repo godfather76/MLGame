@@ -21,11 +21,8 @@ class Conversations:
         # Set the current_conversation name to this one
         self.current_conversation = 'assessment'
         # Check if this character has finished this conversation
-        print(helpers.conversation_had_check(self.root, self))
-        # if helpers.conversation_had_check(self.root, self):
-        #     # Create a response_dictionary
-        #     self.response_dict = helpers.create_response_dict(self.root, self)
-        #     # Begin conversation by starting the 0-rep branch
-        #     helpers.change_reputation(self.root, self.conv_window, self, 0, '')
-        # else:
-        #     self.conv_window.update_main('You have already spoken with that person.')
+        if not helpers.conversation_had_check(self.root, self.conv_window, self):
+            # Create a response_dictionary
+            self.response_dict = helpers.create_response_dict(self.root, self)
+            # Begin conversation by starting the 0-rep branch
+            helpers.change_reputation(self.root, self.conv_window, self, 0, '')

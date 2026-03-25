@@ -35,16 +35,16 @@ def change_reputation(root, conv_window, conversation, amount, text):
     conv_window.update_main(conversation.response_dict[conversation.reputation]['text'])
     conversation_button_builder(root, conv_window, conversation)
 
-def conversation_had_check(root, conversation, *args, **kwargs):
+def conversation_had_check(root, conv_window, conversation, *args, **kwargs):
     res = root.sql.select('main',
                           table='ConversationsHad',
                           where={'char_id': root.curr_char_id,
                                  'convName': conversation.current_conversation},
                           where_and=True)
     if res:
+        conv_window.update_main('You have already spoken with this person.')
         return True
-    else:
-        return False
+    return False
 
 def conversation_button_builder(root, conv_window, conversation, *args, **kwargs):
     for btn_info in conversation.response_dict[conversation.reputation]['button_info']:
