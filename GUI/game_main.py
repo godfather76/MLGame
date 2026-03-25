@@ -1,15 +1,13 @@
 from selectors import SelectSelector
 
-from SQL import db_utilities as dbutil
-from GUI import conversation_widget
-from GUI import main_widgets
-from GUI import utility_classes as util
-from GUI import qt_classes as qt
 from Core import commands
+from Core import dynamic_world as dynamics
 from Core import helpers
-from Core import conversations
 from Core import item_uses
 from Core import room_events
+from GUI import conversation_widget
+from GUI import qt_classes as qt
+from GUI import utility_classes as util
 
 
 def make_terminal(widget):
@@ -24,11 +22,34 @@ class MainGameWidget(util.GroupBoxWidget):
     curr_display = None
     def __init__(self, root, *args, **kwargs):
         super().__init__(root,title='CorpoPunk',*args, **kwargs)
-        # Container to hold the two panels (main and right)
-        self.lookables = None
+        # Declarations we'll use in other methods later.
+        # Honestly... I'm self-taught and everything I know about PEP8 I learned from PyCharm yellow lines
+        # I do this because PyCharm squawks at me
+        # If there's a better way this is done in-industry, I'm all ears XD
+        self.chest_box = None
+        self.entry_box = None
+        self.event = None
         self.exits = None
-        self.room_items = None
+        self.faction_box = None
+        self.feet_box = None
+        self.hands_box = None
+        self.head_box = None
+        self.hp_box = None
+        self.legs_box = None
+        self.level_box = None
+        self.location_bar = None
+        self.location_name = None
+        self.lookables = None
+        self.main_window = None
+        self.moneys_box = None
+        self.name_box = None
         self.people = None
+        self.room_data = None
+        self.room_items = None
+        self.skills_btn = None
+        self.status_btn = None
+        self.xp_box = None
+        # Direction buttons (They honestly just don't look right in alphabetical order with everything else)
         self.se_btn = None
         self.s_btn = None
         self.sw_btn = None
@@ -38,32 +59,29 @@ class MainGameWidget(util.GroupBoxWidget):
         self.w_btn = None
         self.ne_btn = None
         self.n_btn = None
-        self.skills_btn = None
-        self.status_btn = None
-        self.hands_box = None
-        self.chest_box = None
-        self.faction_box = None
-        self.name_box = None
-        self.xp_box = None
-        self.level_box = None
-        self.moneys_box = None
-        self.hp_box = None
-        self.head_box = None
-        self.legs_box = None
-        self.feet_box = None
-        self.entry_box = None
-        self.main_window = None
-        self.location_bar = None
-        self.room_data = None
         self.nw_btn = None
+
+        # A structure for commands (each method is a different command, which we will access with getattr)
         self.commands = commands.CommandStructure(self.root, self)
+        # We generally avoid needing to exclude things by using helpers.py, but any methods that can't be avoided
+        # Are excluded from the list of commands by adding to this list
+        exclude_list = ['root', 'main_game', 'goto']
+        # Make a list of all commands so we can access them easily
+        # This allows us to do things like check user_in for a part of a command
+        self.commands_list = [x for x in dir(self.commands) if not x.startswith('__') and x not in exclude_list]
+        # Room events and item uses operate similar to commands, but we don't need to exclude any methods because the
+        # room events and item uses will be coming directly from the db, not based solely on user input
         self.room_events = room_events.RoomEvents(self.root, self)
         self.item_uses = item_uses.ItemUses(self.root, self)
-        self.location_name, self.event = self.get_room_info()
+        # Dynamic world will run each time the user moves, essentially making the game turn based, with any one action
+        # equaling one turn. Things like NPC movement, resource growth, etc. will happen in dynamic world
+        self.dynamic_world = dynamics.DynamicWorld(self.root, self)
+        # Get room info loads the room data from the db.
+        self.get_room_info()
+        # Get the character data from the db.
         self.char_data = self.get_char_data()
-        exclude_list = ['root', 'main_game', 'goto']
-        self.commands_list = [x for x in dir(self.commands) if not x.startswith('__') and x not in exclude_list]
 
+        # A Horizontal box layout we will use as a container for widgets
         self.container = qt.QtWidgets.QHBoxLayout()
         # Add the container to our GroupBox
         self.gblayout.addLayout(self.container)
@@ -73,18 +91,31 @@ class MainGameWidget(util.GroupBoxWidget):
         self.container.addLayout(self.main_panel)
 
         # Left panel is main display and command entry bar
+        # Left panel and right panel for main game are large enough it became clunky, so I separated them
+        # Left panel consists of Location, a main window with the bulk of the text, and a bar for typing and
+        # sending user input.
         self.left_panel()
 
-        # Right panel for various displays and buttons
+        # Right panel for various displays and buttons (name, profession, various utility buttons, a series of
+        # directional buttons, etc.)
         self.right_panel()
+        # Check if there is an event in this room.
         self.check_for_event()
+        # Show the widget
         self.show()
 
     def check_for_event(self, *args, **kwargs):
+        # If there's a room event in this room (based on info from the db)
         if self.event:
+            # Split the event at ; (this is because in the db, Locations table, in the event field, events must be
+            # entered as [event name]; [event argument1], [event argument2])
             event_split = self.event.split('; ')
+            # EVent name is the first element
             evt = event_split[0]
+            # Join the rest of the data together with commas between (these will be our args to the method of
+            # whatever event is represented by evt
             arg_str = ', '.join(event_split[1:])
+            # Using getattr, we can access the method in self.room_events that is associated with evt
             getattr(self.room_events, evt, None)(arg_str)
 
     def get_char_data(self):
@@ -101,11 +132,13 @@ class MainGameWidget(util.GroupBoxWidget):
         return data_dict
 
     def get_room_info(self):
+        # Get coordinates of the character from the db
         self.X, self.Y, self.Z = self.root.sql.select('main',
                                       table='Characters',
                                       columns=['X', 'Y', 'Z'],
                                       where={'char_id': self.root.curr_char_id})[0]
 
+        # Get the information from the db for the location with those coordinates
         res = self.root.sql.select('main',
                                     table='Locations',
                                     where={'X': self.X,
@@ -113,6 +146,7 @@ class MainGameWidget(util.GroupBoxWidget):
                                            'Z': self.Z},
                                     )[0]
 
+        # Make a dictionary of room data from the db and the associated column names
         self.room_data = {x: (y if y else '') for x, y in zip(self.root.sql.column_names('main', table='Locations'), res)}
         del(self.room_data['locationID'])
         self.curr_display = self.room_data['locationDesc']
@@ -134,8 +168,9 @@ class MainGameWidget(util.GroupBoxWidget):
         self.curr_display += f'\nExits: {helpers.display_string_maker(self.root, display_exits)}\n'
         # This list is just here for ease in look command
         self.lookables = list(self.room_items.keys()) + self.people
-        # Return the data
-        return self.room_data['locationName'], self.room_data['event']
+        # self.location_name, self.event
+        self.location_name = self.room_data['locationName']
+        self.event = self.room_data['event']
 
     def goto_conversation(self, *args, **kwargs):
         # goto ends the current window and moves to the other.
@@ -144,7 +179,7 @@ class MainGameWidget(util.GroupBoxWidget):
 
     def refresh(self):
         self.char_data = self.get_char_data()
-        self.location_name, self.event = self.get_room_info()
+        self.get_room_info()
         self.location_bar.setText(f'{self.X}, {self.Y}, {self.Z} - {self.location_name}')
         # NEED TO CHANGE HOW MAIN DISPLAY IS POPULATED HERE AND IN INIT
         # self.curr_display = self.location_desc
