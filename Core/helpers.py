@@ -21,6 +21,14 @@ def db_write_string_maker(item_data, *args, **kwargs):
     return '; '.join(item_data)
 
 
+def add_credits(root, main_game, qty, *args, **kwargs):
+    new_moneys = main_game.char_data['moneys'] + qty
+    root.sql.update('main',
+                    table='Characters',
+                    data={'moneys': new_moneys},
+                    where={'char_id': root.curr_char_id})
+
+
 @qt.QtCore.Slot()
 def change_reputation(root, conv_window, conversation, amount, text):
     for btn in conversation.response_dict[conversation.reputation]['buttons']:
@@ -206,8 +214,8 @@ def item_dict_maker(root, item_str, *args, **kwargs):
     return item_dict
 
 
-def possible_from_userin(main_game, user_in, full_list, suppress_update=False, source='this room'):
-    qty, user_in = user_in
+def possible_from_userin(main_game, qty, user_in, full_list, suppress_update=False, source='this room'):
+
     if isinstance(full_list, dict):
         full_list = list(full_list.keys())
     possible = [x for x in full_list if x.lower().strip().startswith(user_in)]

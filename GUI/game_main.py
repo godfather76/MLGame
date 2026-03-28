@@ -207,16 +207,19 @@ class MainGameWidget(util.GroupBoxWidget):
                                                         columns='npcName')]
         self.people = [x for x in self.people if x in db_people]
 
-        # Check Items
+        # Make list of item names from db
         db_items = [x[0] for x in self.root.sql.select('main',
                                                        table='Items',
                                                        columns='itemName')]
+        # Make list of plural item names
         db_items_plural = [x[0] for x in self.root.sql.select('main',
                                                               table='Items',
                                                               columns='itemNamePlural')]
-
+        # Make a dictionary of items in the room for searching if player uses get, look, drop, etc.
         self.room_items = helpers.item_dict_maker(self.root, self.room_data['items'])
-
+        # This is to prevent errant items from entering the room via db typos
+        # If an item in the room according to the location doesn't have a corresponding item in the db,
+        # it doesn't get added to the list of items in the room
         self.room_items = {x: y for x, y in self.room_items.items() if x in db_items or x in db_items_plural}
 
     def send_command(self):
@@ -230,20 +233,32 @@ class MainGameWidget(util.GroupBoxWidget):
         self.update_main(f'{disp}')
         self.entry_box.clear()
         if user_in:
+            # If the input matches a command
             if user_in in self.commands_list:
+                # Do the command
                 getattr(self.commands, user_in, None)(args)
+                self.dynamic_world.move_world()
             else:
+                # Make a list of commands that start with the user input
                 possible_commands = [x for x in self.commands_list if x.startswith(user_in)]
+                # If there is only one possible command based on user_in
                 if len(possible_commands) == 1:
+                    # Do the command using the full command nane rather than the partial user in
                     getattr(self.commands, possible_commands[0], None)(args)
+                    self.dynamic_world.move_world()
+                # If there are multiple possible commands based on user_in
                 elif len(possible_commands) > 1:
+                    # We tell the player which commands user_in could refer to
                     self.update_main(f'{user_in} could refer to multiple commands:')
                     for poss_cmd in possible_commands:
                         self.update_main(f'{poss_cmd}')
+                # If there are no possible commands based on user_in
                 elif len(possible_commands) == 0:
+                    # Let the player know that user_in can't refer to a command
                     self.update_main(f'There are no commands that begin with {user_in}')
 
     def update_main(self, text):
+        # Add a line break in front of the text
         self.curr_display += f'\n{text}'
         self.main_window.setText(self.curr_display)
 
@@ -580,4 +595,3 @@ class MainGameWidget(util.GroupBoxWidget):
         button_container.setRowStretch(4, 1)
         button_container.setContentsMargins(0, 0, 0, 0)
         up_dn_layout.setContentsMargins(0, 0, 0, 0)
-
