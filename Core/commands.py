@@ -12,6 +12,9 @@ def arg_cruncher(args):
         if this_split[0].isdigit():
             qty = int(this_split[0])
             del this_split[0]
+        elif this_split[0] == 'all':
+            qty = this_split[0]
+            del this_split[0]
         else:
             qty = 1
         return qty, ' '.join(this_split)
@@ -40,6 +43,7 @@ class CommandStructure:
         # Get the bag type and contents of the bag (as a dictionary where {itemname: [qtys]
         bag_type, bag_contents_dict = helpers.get_bag_contents(self.root)
         item = helpers.possible_from_userin(self.main_game,
+                                            qty,
                                             user_in,
                                             list(bag_contents_dict.keys()),
                                             source=bag_type)
@@ -47,6 +51,10 @@ class CommandStructure:
         if item and not isinstance(item, list):
             # We need to check the number in the bag against quantity they asked to drop
             total_in_bag = sum(bag_contents_dict[item])
+            # If qty is 'all'
+            if qty == 'all':
+                # Set qty to total_in bag
+                qty = total_in_bag
             # If they aren't carrying as many as they asked to drop
             if total_in_bag < qty:
                 # Tell them no and return
@@ -79,16 +87,17 @@ class CommandStructure:
     def get(self, *args, **kwargs):
         # Parse user_in
         qty, user_in = arg_cruncher(args[0])
-
         if not user_in:
             self.main_game.update_main('Get what? Type "get [item name]" to get something.')
             return
         # room contents are in self.main_game.room_items, and the item names are the keys
         item = helpers.possible_from_userin(self.main_game,
+                                            qty,
                                             user_in,
                                             list(self.main_game.room_items.keys()),
                                             suppress_update=True)
         person = helpers.possible_from_userin(self.main_game,
+                                              qty,
                                               user_in,
                                               self.main_game.people,
                                               suppress_update=True)
@@ -124,10 +133,12 @@ class CommandStructure:
             return
         # Now we'll check if the number requested exist in the room
         qty_in_room = sum(self.main_game.room_items[item])
+        # Check if qty == 'all'
+        if qty == 'all':
+            # Set all to the number in the room
+            qty = qty_in_room
         # If the qty is more than what's in the room
         if qty > qty_in_room:
-        #     if qty > 1:
-        #         disp_item =
             self.main_game.update_main(f'You can\'t pick up '
                                        f'{str(qty)} {helpers.get_name(self.root, item, qty)}. '
                                        f'There are only {str(qty_in_room)} {helpers.get_name(self.root, item, qty)} '
@@ -147,7 +158,12 @@ class CommandStructure:
             bag_contents_dict[item] = []
             new_total = qty
 
+        ## WORKING HERE ADDING CREDITS
         # Now, we need to figure out new stacking.
+        if item == 'Credit' or item == 'Credits':
+            helpers.add_credits(self.root, self.main_game, qty)
+            return
+
         full_stacks_needed, overflow = helpers.stacker(new_total, stack_size)
         # We set the bag_contents_dict[item] to a list that is full_stacks_needed number of stack_size
         # So if we need 3 full stacks and the stack size is 20, it will be [20, 20, 20]
@@ -194,6 +210,7 @@ class CommandStructure:
         # First we'll try the contents of room, then if it's not there, we'll look in character's bag.
         # We suppress updates because we'll check the bag if there's nothing in the room that fits
         lookable = helpers.possible_from_userin(self.main_game,
+                                                qty,
                                                 user_in,
                                                 self.main_game.lookables,
                                                 suppress_update=True)
@@ -204,6 +221,7 @@ class CommandStructure:
             # Check if user_in could refer to anything in the bag.
             # This time we don't suppress updates, so it will let user know if there's nothing
             bag_lookable = helpers.possible_from_userin(self.main_game,
+                                                        qty,
                                                         user_in,
                                                         list(bag_contents_dict.keys()),
                                                         suppress_update=True)
@@ -246,13 +264,13 @@ class CommandStructure:
 
     def speak(self, *args, **kwargs):
         # crunch the args into a single string
-        user_in = arg_cruncher(args[0])
+        qty, user_in = arg_cruncher(args[0])
         # If there are no args, they only typed "speak"
         if not user_in:
             # Let the user know
             self.main_game.update_main('Speak to whom? Currently you\'re just talking to yourself.')
         # person will either be the name of the only possibility from user_in or it will be False/None.
-        person = helpers.possible_from_userin(self.main_game, user_in, self.main_game.people)
+        person = helpers.possible_from_userin(self.main_game, qty, user_in, self.main_game.people)
         # If not False/None,
         if person and not isinstance(person, list):
             # Select the conversation column from db where npcName is the person in the room indicated by user_in
@@ -279,7 +297,7 @@ class CommandStructure:
         if not user_in:
             self.main_game.update_main('Use what? You must specify what item you want to use by '
                                        'typing "use [item name]"')
-        item = helpers.possible_from_userin(self.main_game, user_in, self.main_game.room_items)
+        item = helpers.possible_from_userin(self.main_game, None, user_in, self.main_game.room_items)
         if not item or isinstance(item, list):
             return
         item_use = self.root.sql.select('main',
