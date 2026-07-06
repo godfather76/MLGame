@@ -47,6 +47,7 @@ class CommandStructure:
                                             user_in,
                                             list(bag_contents_dict.keys()),
                                             source=bag_type)
+
         # If the item matches and isn't a list
         if item and not isinstance(item, list):
             # We need to check the number in the bag against quantity they asked to drop
@@ -85,8 +86,12 @@ class CommandStructure:
             self.main_game.update_main(f'You get {qty} {item} from your {bag_type} and drop it on the floor.')
 
     def get(self, *args, **kwargs):
+        if args[0] == 'credits':
+            argu = 'all, credits'
+        else:
+            argu = args[0]
         # Parse user_in
-        qty, user_in = arg_cruncher(args[0])
+        qty, user_in = arg_cruncher(argu)
         if not user_in:
             self.main_game.update_main('Get what? Type "get [item name]" to get something.')
             return
@@ -101,12 +106,13 @@ class CommandStructure:
                                               user_in,
                                               self.main_game.people,
                                               suppress_update=True)
+
         # If it is an item, we ignore whether it might be a person, so we start with that
         if item and not isinstance(item, list):
             # We can just skip this tree, all we're doing is preventing the others and moving on
             pass
         # If it's neither an item nor a person, it's not there
-        elif not person and not isinstance(item, list):
+        elif not person and item and not isinstance(item, list):
             # We'll tell the player it's not there
             self.main_game.update_main(f'Sorry, I don\'t see a {user_in} in this room.')
             return
@@ -158,25 +164,23 @@ class CommandStructure:
             bag_contents_dict[item] = []
             new_total = qty
 
-        ## WORKING HERE ADDING CREDITS
         # Now, we need to figure out new stacking.
         if item == 'Credit' or item == 'Credits':
             helpers.add_credits(self.root, self.main_game, qty)
-            return
+        else:
+            full_stacks_needed, overflow = helpers.stacker(new_total, stack_size)
+            # We set the bag_contents_dict[item] to a list that is full_stacks_needed number of stack_size
+            # So if we need 3 full stacks and the stack size is 20, it will be [20, 20, 20]
+            bag_contents_dict[item] = helpers.item_dict_entry_maker(stack_size, full_stacks_needed, overflow)
+            # Need to get total of slots taken now to check against bag_max
+            total_slots_taken = 0
+            for qty_list in bag_contents_dict.values():
+                total_slots_taken += len(qty_list)
 
-        full_stacks_needed, overflow = helpers.stacker(new_total, stack_size)
-        # We set the bag_contents_dict[item] to a list that is full_stacks_needed number of stack_size
-        # So if we need 3 full stacks and the stack size is 20, it will be [20, 20, 20]
-        bag_contents_dict[item] = helpers.item_dict_entry_maker(stack_size, full_stacks_needed, overflow)
-        # Need to get total of slots taken now to check against bag_max
-        total_slots_taken = 0
-        for qty_list in bag_contents_dict.values():
-            total_slots_taken += len(qty_list)
-
-        if total_slots_taken > bag_max:
-            self.main_game.update_main(f'You can\'t fit {qty} more {helpers.get_name(self.root, item, qty)}')
-            return
-        helpers.update_bag_items(self.root, bag_contents_dict)
+            if total_slots_taken > bag_max:
+                self.main_game.update_main(f'You can\'t fit {qty} more {helpers.get_name(self.root, item, qty)}')
+                return
+            helpers.update_bag_items(self.root, bag_contents_dict)
 
         # Now we remove it from the room as well (We already know it's there and that there are enough of it)
         new_total_room = qty_in_room - qty

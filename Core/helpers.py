@@ -23,6 +23,7 @@ def db_write_string_maker(item_data, *args, **kwargs):
 
 def add_credits(root, main_game, qty, *args, **kwargs):
     new_moneys = main_game.char_data['moneys'] + qty
+
     root.sql.update('main',
                     table='Characters',
                     data={'moneys': new_moneys},
@@ -122,6 +123,7 @@ def get_bag_contents(root, *args, **kwargs):
                                table='Inventories',
                                columns=['bagContents', 'bagType'],
                                where={'char_id': root.curr_char_id})[0]
+
     return res[1], item_dict_maker(root, res[0])
 
 
@@ -191,6 +193,7 @@ def item_dict_entry_maker(stack_size, full_stacks_needed, overflow, *args, **kwa
 
 
 def item_dict_maker(root, item_str, *args, **kwargs):
+    print(item_str)
     item_dict = {}
     # Loop through each of the items in the list
     for item in item_str.split('; '):
@@ -204,6 +207,7 @@ def item_dict_maker(root, item_str, *args, **kwargs):
             item = ' '.join(this_split)
         # Get the item's plural name from the db
         item_plural = get_plural(root, item)
+
         # If item_plural is the same as item, it was already plural, so we need to get the singular
         if item_plural == item:
             item = get_singular(root, item_plural)
@@ -218,7 +222,9 @@ def possible_from_userin(main_game, qty, user_in, full_list, suppress_update=Fal
 
     if isinstance(full_list, dict):
         full_list = list(full_list.keys())
-    possible = [x for x in full_list if x.lower().strip().startswith(user_in)]
+
+    possible = [x for x in full_list if user_in.lower().strip().startswith(x.lower().strip())]
+
     # If nothing startswith user in
     if len(possible) == 0:
         # Split each into its separate words
