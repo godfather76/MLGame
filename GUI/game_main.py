@@ -162,6 +162,7 @@ class MainGameWidget(util.GroupBoxWidget):
         # or person in the room if the name doesn't match a DB entry
         self.room_items = {}
         self.room_check()
+
         # Add people, items, and exits to the list after making them into ("X, Y, and Z" or "X and Y" or "X")
         self.curr_display += f'\nPeople: {helpers.display_string_maker(self.root, self.people)}'
         self.curr_display += f'\nItems: {helpers.display_string_maker(self.root, self.room_items)}'
@@ -220,7 +221,9 @@ class MainGameWidget(util.GroupBoxWidget):
         # This is to prevent errant items from entering the room via db typos
         # If an item in the room according to the location doesn't have a corresponding item in the db,
         # it doesn't get added to the list of items in the room
+
         self.room_items = {x: y for x, y in self.room_items.items() if x in db_items or x in db_items_plural}
+
 
     def send_command(self):
         # split user input by spaces
