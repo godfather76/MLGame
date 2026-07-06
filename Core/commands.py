@@ -36,12 +36,14 @@ class CommandStructure:
     def drop(self, *args, **kwargs):
         # parse user_in args
         qty, user_in = arg_cruncher(args[0])
+
         # if they didn't specify an item
         if not user_in:
             self.main_game.update_main('Drop what? You have to specify what item you would like to drop.')
             return
         # Get the bag type and contents of the bag (as a dictionary where {itemname: [qtys]
         bag_type, bag_contents_dict = helpers.get_bag_contents(self.root)
+
         item = helpers.possible_from_userin(self.main_game,
                                             qty,
                                             user_in,
@@ -52,6 +54,7 @@ class CommandStructure:
         if item and not isinstance(item, list):
             # We need to check the number in the bag against quantity they asked to drop
             total_in_bag = sum(bag_contents_dict[item])
+
             # If qty is 'all'
             if qty == 'all':
                 # Set qty to total_in bag

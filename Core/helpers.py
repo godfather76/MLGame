@@ -123,8 +123,12 @@ def get_bag_contents(root, *args, **kwargs):
                                table='Inventories',
                                columns=['bagContents', 'bagType'],
                                where={'char_id': root.curr_char_id})[0]
-
-    return res[1], item_dict_maker(root, res[0])
+    item_dict = item_dict_maker(root, res[0])
+    item_dict['Credit'] = list(root.sql.select('main',
+                                           table='Characters',
+                                           columns='moneys',
+                                           where={'char_id': root.curr_char_id})[0])
+    return res[1], item_dict
 
 
 def get_indef_article(item, *args, **kwargs):
@@ -175,6 +179,7 @@ def get_singular(root, item, *args, **kwargs):
 
 
 def get_stack_size(root, item, *args, **kwargs):
+
     stack_size = root.sql.select('main',
                                  table='Items',
                                  columns='stackSize',
@@ -193,7 +198,7 @@ def item_dict_entry_maker(stack_size, full_stacks_needed, overflow, *args, **kwa
 
 
 def item_dict_maker(root, item_str, *args, **kwargs):
-    print(item_str)
+
     item_dict = {}
     # Loop through each of the items in the list
     for item in item_str.split('; '):
