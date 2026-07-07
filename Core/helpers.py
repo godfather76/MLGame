@@ -270,6 +270,10 @@ def stacker(new_total, stack_size):
 
 
 def update_bag_items(root, bag_contents_dict, *args, **kwargs):
+    try:
+        del bag_contents_dict['Credit']
+    except KeyError:
+        pass
     write_str = db_write_string_maker(bag_contents_dict)
     # Write to db
     root.sql.update('main',

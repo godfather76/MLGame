@@ -75,7 +75,8 @@ class CommandStructure:
             # So if we need 3 full stacks and the stack size is 20, it will be [20, 20, 20]
             bag_contents_dict[item] = helpers.item_dict_entry_maker(stack_size, full_stacks_needed, overflow)
             helpers.update_bag_items(self.root, bag_contents_dict)
-
+            if item == 'Credit' or item == 'Credits':
+                helpers.add_credits(self.root, self.main_game, (0 - qty))
             # Now we need to add it to the room's items
             if item in self.main_game.room_items.keys():
                 qty_in_rm = sum(self.main_game.room_items[item])
