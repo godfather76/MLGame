@@ -1,6 +1,7 @@
 import bcrypt
 from GUI import character_creation as char_create
 from GUI import character_selection as char_select
+from GUI import face_rec
 from GUI import main_widgets
 from GUI import utility_classes as util
 from GUI import qt_classes as qt
@@ -20,6 +21,10 @@ class LoginWidget(util.GroupBoxWidget):
                                           placeholderText='Enter password here',
                                           layout=self.gblayout,
                                           echoMode=qt.LineEdit.EchoMode.Password)
+        self.face_rec_btn = qt.PushButton(self.root,
+                                          text='Use Facial Recognition',
+                                          layout=self.gblayout,
+                                          func=self.use_face_rec)
         # Button to kick off login
         self.login_btn = qt.PushButton(self.root,
                                         text='Log in!',
@@ -81,7 +86,74 @@ class LoginWidget(util.GroupBoxWidget):
             # Go to character select screen
             self.go_to_char_select()
 
+    @qt.QtCore.Slot()
+    def use_face_rec(self):
+        # if there's nothing in username, pop error dialog and return
+        if not self.username_entry.text():
+            qt.ErrorDialog(self.root,
+                           title='Enter Username',
+                           text='In order to use facial recognition, you must first enter a username.',)
+            return
+        else:
+            # Make a dictionary {'username': {'user_id': user_id, 'face_rec_pic"; face_rec_pic}
+            # We use name as the key because that's what they typed in. We make it lower and strip it to ignore case
+            users = {y.lower().strip(): {'user_id': x, 'face_rec_pic': z} for x, y, z in self.root.sql.select('main',
+                                                                        table='Users',
+                                                                        columns=['user_id',
+                                                                                 'username',
+                                                                                 'face_rec_pic'])}
+            # If the lowered and stripped text from the entry box is in the usernames (keys in our dictionary)
+            if self.username_entry.text().lower().strip() in users.keys():
+                # Set pic path to
+                face_rec_pic_path = users[self.username_entry.text().lower().strip()]['face_rec_pic']
+                print(repr(face_rec_pic_path))
+                if not face_rec_pic_path:
+                    self.go_to_face_rec_setup()
+                    return
+                user_id = users[self.username_entry.text().lower().strip()]['user_id']
+            else:
+                qt.ErrorDialog(self.root,
+                               title='Incorrect Username',
+                               text='Please enter a valid username. If you have not created a user for yourself, do that'
+                                    'first. You can set up facial recognition at a later time.',)
+                return
+        # We only get here if the above doesn't return due to error, so we know that face_rec_pic_path is set
+        if self.check_device():
+            from deepface import DeepFace
+            DeepFace.stream(face_rec_pic_path)
+
+
+    @qt.QtCore.Slot()
     def go_to_char_select(self):
         # Load character select widget
         self.goto(self.root.char_select_widget,
                   char_select.CharSelectWidget)
+
+    @qt.QtCore.Slot()
+    def go_to_face_rec_setup(self):
+        # Load face recognition setup widget
+        self.goto(self.root.face_rec_setup_widget,
+                  face_rec.FaceRecSetupWidget)
+
+    def check_device(self):
+        import os
+
+        # Suppress core OpenCV warnings and info logs
+        os.environ['OPENCV_LOG_LEVEL'] = 'OFF'
+
+        # Suppress companion FFmpeg backend warnings
+        os.environ['OPENCV_FFMPEG_LOGLEVEL'] = '-8'
+        import cv2
+        cap = cv2.VideoCapture(0)
+        dev_found = False
+        if cap.isOpened():
+            ret, frame = cap.read()
+            if ret:
+                dev_found = True
+        if not dev_found:
+            qt.ErrorDialog(self.root,
+                           title='No Video Device Detected',
+                           text='No Video Device Detected. Make sure your device is plugged in and then try again.')
+            return False
+        else:
+            return True

@@ -8,14 +8,15 @@ import sys
 # Main window will remain here and the centralWidget will change
 class MainWindow(qt.QtWidgets.QMainWindow):
     # dev_mode will log me directly in so I don't go crazy retyping my username and password
-    # dev_mode = False
-    dev_mode = True
+    dev_mode = False
+    # dev_mode = True
     # This allows me to easily select a different user for dev mode
     dev_user_id = 1
     # Create variables we want to use later, so that they're considered declared in the init
     about_widget = None
     char_create_widget = None
     char_select_widget = None
+    face_rec_setup_widget = None
     login_widget = None
     user_create_widget = None
     main_game_widget = None
