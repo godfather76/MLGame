@@ -30,19 +30,7 @@ def add_credits(root, main_game, qty, *args, **kwargs):
                     where={'char_id': root.curr_char_id})
 
 
-@qt.QtCore.Slot()
-def change_reputation(root, conv_window, conversation, amount, text):
-    for btn in conversation.response_dict[conversation.reputation]['buttons']:
-        btn.hide()
-    try:
-        conversation.reputation += amount
-    except TypeError:
-        end_conversation(root, conv_window, conversation)
-        return
-    # self.conv_window.main_window.clear()
-    conv_window.update_main(text)
-    conv_window.update_main(conversation.response_dict[conversation.reputation]['text'])
-    conversation_button_builder(root, conv_window, conversation)
+
 
 def conversation_had_check(root, conv_window, conversation, *args, **kwargs):
     res = root.sql.select('main',
@@ -54,33 +42,6 @@ def conversation_had_check(root, conv_window, conversation, *args, **kwargs):
         conv_window.update_main('You have already spoken with this person.')
         return True
     return False
-
-def conversation_button_builder(root, conv_window, conversation, *args, **kwargs):
-    for btn_info in conversation.response_dict[conversation.reputation]['button_info']:
-        text, rep = btn_info
-        btn = qt.PushButton(root,
-                            text=text,
-                            layout=conv_window.button_container,
-                            func=lambda event, r=root, w=conv_window,
-                                        c=conversation, x=rep, y=text: change_reputation(r, w, c, x, y))
-        conversation.response_dict[conversation.reputation]['buttons'].append(btn)
-
-def create_response_dict(root, conversation, *args, **kwargs):
-    # Get info for this conversation from the db.
-    res = root.sql.select('main',
-                          table='Conversations',
-                          where={'conversationName': conversation.current_conversation})
-    # Get the column names from the db
-    col_names= root.sql.column_names('main',
-                                     table='Conversations')
-
-    res_dict_list = [{x: y for x, y in zip(col_names, res[i])} for i in range(len(res))]
-    response_dict = {response['keyNumber']: {'text': response['text'],
-                                            'button_info': [(response[f'button{i}_text'],
-                                                             response[f'button{i}_value']) for i in range(1, 5)
-                                                            if response[f'button{i}_text']],
-                                            'buttons': []} for response in res_dict_list}
-    return response_dict
 
 def display_string_maker(root, item_data, *args, **kwargs):
     # If item_data is a dictionary, we will append its contents to a list
@@ -110,11 +71,12 @@ def display_string_maker(root, item_data, *args, **kwargs):
     else:
         return f'{', '.join(item_data[:-1])}, and {item_data[-1]}'
 
-def end_conversation(root, conv_window, conversation, *args, **kwargs):
+def end_conversation(root, conv_window, *args, **kwargs):
     root.sql.insert('main',
                     table='ConversationsHad',
-                    data={'convName': conversation.current_conversation,
+                    data={'convName': root.active_conversation,
                           'char_id': root.curr_char_id})
+    root.active_conversation = None
     conv_window.go_to_game()
 
 
@@ -124,10 +86,11 @@ def get_bag_contents(root, *args, **kwargs):
                                columns=['bagContents', 'bagType'],
                                where={'char_id': root.curr_char_id})[0]
     item_dict = item_dict_maker(root, res[0])
-    item_dict['Credit'] = list(root.sql.select('main',
-                                           table='Characters',
-                                           columns='moneys',
-                                           where={'char_id': root.curr_char_id})[0])
+    # item_dict['Credit'] = list(root.sql.select('main',
+    #                                        table='Characters',
+    #                                        columns='moneys',
+    #                                        where={'char_id': root.curr_char_id})[0])
+
     return res[1], item_dict
 
 
@@ -184,6 +147,7 @@ def get_stack_size(root, item, *args, **kwargs):
                                  table='Items',
                                  columns='stackSize',
                                  where={'itemName': item})[0][0]
+
     return stack_size
 
 

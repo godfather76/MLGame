@@ -9,6 +9,7 @@ class FaceRecSetupWidget(util.GroupBoxWidget):
         self.main_label = qt.Label(self.root,
                                    text='Face Recognition Setup',
                                    layout=self.gblayout)
+
         # self.username_entry = qt.LineEdit(self.root,
         #                                   placeholderText='Enter username here',
         #                                   layout=self.gblayout)

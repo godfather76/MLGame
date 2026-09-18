@@ -31,11 +31,12 @@ class MainWindow(qt.QtWidgets.QMainWindow):
     curr_char_id = None
     curr_char_name = None
 
-    def __init__(self, main_app, *args, **kwargs):
+    def __init__(self, main_app, config, *args, **kwargs):
         # This is root
         # instantiate the super class
         super().__init__(*args, **kwargs)
         self.main_app = main_app
+        self.config = config
         # set up our sql builder and sql database
         # Key is database path, value is the database's alias.
         db_info = {'SQL/main_db.db': 'main'}

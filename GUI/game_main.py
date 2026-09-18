@@ -26,6 +26,7 @@ class MainGameWidget(util.GroupBoxWidget):
         # Honestly... I'm self-taught and everything I know about PEP8 I learned from PyCharm yellow lines
         # I do this because PyCharm squawks at me
         # If there's a better way this is done in-industry, I'm all ears XD
+        active_conversation = None
         self.chest_box = None
         self.entry_box = None
         self.event = None

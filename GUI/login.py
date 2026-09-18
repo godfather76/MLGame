@@ -5,9 +5,12 @@ from GUI import face_rec
 from GUI import main_widgets
 from GUI import utility_classes as util
 from GUI import qt_classes as qt
+from os import path, getcwd
 
 
 class LoginWidget(util.GroupBoxWidget):
+    users = None
+
     def __init__(self, root, *args, **kwargs):
         super().__init__(root, title='Login', *args, **kwargs)
         self.main_label = qt.Label(self.root,
@@ -21,10 +24,10 @@ class LoginWidget(util.GroupBoxWidget):
                                           placeholderText='Enter password here',
                                           layout=self.gblayout,
                                           echoMode=qt.LineEdit.EchoMode.Password)
-        self.face_rec_btn = qt.PushButton(self.root,
-                                          text='Use Facial Recognition',
-                                          layout=self.gblayout,
-                                          func=self.use_face_rec)
+        # self.face_rec_btn = qt.PushButton(self.root,
+        #                                   text='Use Facial Recognition',
+        #                                   layout=self.gblayout,
+        #                                   func=self.use_face_rec)
         # Button to kick off login
         self.login_btn = qt.PushButton(self.root,
                                         text='Log in!',
@@ -86,42 +89,17 @@ class LoginWidget(util.GroupBoxWidget):
             # Go to character select screen
             self.go_to_char_select()
 
+    ## FACE RECOGNITION NOT CURRENTLY IMPLEMENTED
+
     @qt.QtCore.Slot()
     def use_face_rec(self):
-        # if there's nothing in username, pop error dialog and return
-        if not self.username_entry.text():
-            qt.ErrorDialog(self.root,
-                           title='Enter Username',
-                           text='In order to use facial recognition, you must first enter a username.',)
-            return
-        else:
-            # Make a dictionary {'username': {'user_id': user_id, 'face_rec_pic"; face_rec_pic}
-            # We use name as the key because that's what they typed in. We make it lower and strip it to ignore case
-            users = {y.lower().strip(): {'user_id': x, 'face_rec_pic': z} for x, y, z in self.root.sql.select('main',
-                                                                        table='Users',
-                                                                        columns=['user_id',
-                                                                                 'username',
-                                                                                 'face_rec_pic'])}
-            # If the lowered and stripped text from the entry box is in the usernames (keys in our dictionary)
-            if self.username_entry.text().lower().strip() in users.keys():
-                # Set pic path to
-                face_rec_pic_path = users[self.username_entry.text().lower().strip()]['face_rec_pic']
-                print(repr(face_rec_pic_path))
-                if not face_rec_pic_path:
-                    self.go_to_face_rec_setup()
-                    return
-                user_id = users[self.username_entry.text().lower().strip()]['user_id']
-            else:
-                qt.ErrorDialog(self.root,
-                               title='Incorrect Username',
-                               text='Please enter a valid username. If you have not created a user for yourself, do that'
-                                    'first. You can set up facial recognition at a later time.',)
-                return
-        # We only get here if the above doesn't return due to error, so we know that face_rec_pic_path is set
+        self.face_rec_paths = [x[0] for x in self.root.sql.select('main',
+                                                      table='Users',
+                                                      columns=['face_rec']) if x[0] is not None]
         if self.check_device():
-            from deepface import DeepFace
-            DeepFace.stream(face_rec_pic_path)
-
+            self.check_face()
+        else:
+            return
 
     @qt.QtCore.Slot()
     def go_to_char_select(self):
@@ -157,3 +135,63 @@ class LoginWidget(util.GroupBoxWidget):
             return False
         else:
             return True
+
+    def check_face(self):
+        import cv2
+        import threading
+        from deepface import DeepFace
+
+        # Initialize camera feed
+        cap = cv2.VideoCapture(0)  # 0 is usually the built-in webcam
+        cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+
+        # for p in self.face_rec_paths:
+        # Global variables for state management
+        counter = 0
+        face_match = False
+        print(self.face_rec_paths[0])
+        reference_img = cv2.imread(self.face_rec_paths[0])  # Your pre-saved reference image
+
+        def check_frame(frame):
+            global face_match
+            try:
+                # Compare current frame with reference image
+                result = DeepFace.verify(frame, reference_img.copy(), model_name='ArcFace', enforce_detection=False)
+                face_match = result["verified"]
+            except Exception:
+                face_match = False
+
+        while True:
+            ret, frame = cap.read()
+            if not ret:
+                break
+
+            # Only run verification every 30 frames to avoid UI lag
+            if counter % 30 == 0:
+                threading.Thread(target=check_frame, args=(frame.copy(),), daemon=True).start()
+            counter += 1
+
+            # Visual feedback box and text overlay
+            if face_match:
+                cv2.putText(frame, "MATCH!", (20, 50), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 3)
+                print('Match!')
+                break
+            else:
+                cv2.putText(frame, "NO MATCH", (20, 50), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255), 3)
+
+            # Render window
+            cv2.imshow("Webcam Live Face Recognition", frame)
+
+            # Break loop by pressing 'q'
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
+
+            try:
+                if cv2.getWindowProperty("Webcam Live Face Recognition", cv2.WND_PROP_VISIBLE) < 1:
+                    break
+            except cv2.error:
+                break
+
+        cap.release()
+        cv2.destroyAllWindows()

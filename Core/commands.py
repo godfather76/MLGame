@@ -9,7 +9,10 @@ def arg_cruncher(args):
         return False
     elif ', ' in args:
         this_split = args.split(', ')
-        if this_split[0].isdigit():
+        if ',' in this_split[0]:
+            qty = int(this_split[0].replace(',', ''))
+            del this_split[0]
+        elif this_split[0].isdigit():
             qty = int(this_split[0])
             del this_split[0]
         elif this_split[0] == 'all':
@@ -50,33 +53,45 @@ class CommandStructure:
                                             list(bag_contents_dict.keys()),
                                             source=bag_type)
 
+        # If we didn't turn anything up, we'll see if the person is picking up credits
+        if not item and 'credit'.startswith(user_in.lower().strip()):
+            if qty == 1:
+                item = 'Credit'
+            else:
+                item = 'Credits'
+
         # If the item matches and isn't a list
         if item and not isinstance(item, list):
-            # We need to check the number in the bag against quantity they asked to drop
-            total_in_bag = sum(bag_contents_dict[item])
-
-            # If qty is 'all'
-            if qty == 'all':
-                # Set qty to total_in bag
-                qty = total_in_bag
-            # If they aren't carrying as many as they asked to drop
-            if total_in_bag < qty:
-                # Tell them no and return
-                self.main_game.update_main(f'You can\'t drop {str(qty)} {item}. There are only {str(total_in_bag)} '
-                                           f'{item} in your {bag_type}.')
-                return
-            # Otherwise, we continue on by subtracting qty from the total in the bag.
-            new_total_in_bag = total_in_bag - qty
-            # Get stack size to pass into our new quantity parsing functions:
-            stack_size = helpers.get_stack_size(self.root, item)
-            # Now, we need to figure out new stacking.
-            full_stacks_needed, overflow = helpers.stacker(new_total_in_bag, stack_size)
-            # We set the bag_contents_dict[item] to a list that is full_stacks_needed number of stack_size
-            # So if we need 3 full stacks and the stack size is 20, it will be [20, 20, 20]
-            bag_contents_dict[item] = helpers.item_dict_entry_maker(stack_size, full_stacks_needed, overflow)
-            helpers.update_bag_items(self.root, bag_contents_dict)
+            # If we're dealing with credits
             if item == 'Credit' or item == 'Credits':
+                # Subtract the credits from the character's total
                 helpers.add_credits(self.root, self.main_game, (0 - qty))
+                stack_size = 1_000_000_000
+            else:
+                # We need to check the number in the bag against quantity they asked to drop
+                total_in_bag = sum(bag_contents_dict[item])
+
+                # If qty is 'all'
+                if qty == 'all':
+                    # Set qty to total_in bag
+                    qty = total_in_bag
+                # If they aren't carrying as many as they asked to drop
+                if total_in_bag < qty:
+                    # Tell them no and return
+                    self.main_game.update_main(f'You can\'t drop {str(qty)} {item}. There are only {str(total_in_bag)} '
+                                               f'{item} in your {bag_type}.')
+                    return
+                # Otherwise, we continue on by subtracting qty from the total in the bag.
+                new_total_in_bag = total_in_bag - qty
+                # Get stack size to pass into our new quantity parsing functions:
+                stack_size = helpers.get_stack_size(self.root, item)
+                # Now, we need to figure out new stacking.
+                full_stacks_needed, overflow = helpers.stacker(new_total_in_bag, stack_size)
+                # We set the bag_contents_dict[item] to a list that is full_stacks_needed number of stack_size
+                # So if we need 3 full stacks and the stack size is 20, it will be [20, 20, 20]
+                bag_contents_dict[item] = helpers.item_dict_entry_maker(stack_size, full_stacks_needed, overflow)
+                helpers.update_bag_items(self.root, bag_contents_dict)
+
             # Now we need to add it to the room's items
             if item in self.main_game.room_items.keys():
                 qty_in_rm = sum(self.main_game.room_items[item])
@@ -159,6 +174,7 @@ class CommandStructure:
         bag_type, bag_contents_dict = helpers.get_bag_contents(self.root)
         # Get the bag's max size from the DB
         bag_max = helpers.get_bag_size(self.root)
+
         # Get stack size from the DB
         stack_size = helpers.get_stack_size(self.root, item)
         # If the item is in the bag, we need to check stack size and see if the number being picked up will fit
@@ -184,6 +200,7 @@ class CommandStructure:
             if total_slots_taken > bag_max:
                 self.main_game.update_main(f'You can\'t fit {qty} more {helpers.get_name(self.root, item, qty)}')
                 return
+            print(bag_contents_dict)
             helpers.update_bag_items(self.root, bag_contents_dict)
 
         # Now we remove it from the room as well (We already know it's there and that there are enough of it)
@@ -201,6 +218,8 @@ class CommandStructure:
         bag_size = helpers.get_bag_size(self.root)
         self.main_game.update_main(f'You open your {bag_type} and peer inside. You have:')
         i = 1
+        if list(bag_contents_dict.keys()) == ['None']:
+            del bag_contents_dict['None']
         for item, qty_list in bag_contents_dict.items():
             for qty in qty_list:
                 stack_size = helpers.get_stack_size(self.root, item)
@@ -293,7 +312,7 @@ class CommandStructure:
                 # Otherwise, we now have the name of our conversation in self.root.conversations class
                 # Set the root var to the conversation from the db
                 self.root.active_conversation = conversation
-                # LOad the conversation widget
+                # Load the conversation widget
                 self.main_game.goto_conversation()
 
     @qt.QtCore.Slot()
@@ -301,7 +320,7 @@ class CommandStructure:
         self.main_game.update_main('Showing Status information')
 
     def use(self, *args, **kwargs):
-        user_in = arg_cruncher(args[0])
+        qty, user_in = arg_cruncher(args[0])
         if not user_in:
             self.main_game.update_main('Use what? You must specify what item you want to use by '
                                        'typing "use [item name]"')
