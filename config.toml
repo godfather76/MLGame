@@ -1,1 +1,3 @@
-test = 'Foo'
+# DEV user id (instant login) or 0 (require login)
+DEV_USER=1
+MODEL='qwen2.5:7b'

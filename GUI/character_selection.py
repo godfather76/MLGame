@@ -87,10 +87,13 @@ class CharSelectWidget(util.GroupBoxWidget):
 
     def load_and_go(self):
         char_name = self.character_dropdown.currentText()
+        cols = self.root.sql.column_names('main',
+                                          table='Characters')
         this_char = self.root.sql.select('main',
-                                                      table='Characters',
-                                                      columns=['char_id', 'charName'],
-                                                      where={'charName': char_name})
-        self.root.curr_char_id = this_char[0][0]
-        self.root.curr_char_name = this_char[0][1]
+                                         table='Characters',
+                                         columns=cols,
+                                         where={'charName': char_name})[0]
+        self.root.curr_char_data = {x: (y if y else '') for x, y in zip(cols, this_char)}
+        self.root.curr_char_id = self.root.curr_char_data['char_id']
+        self.root.curr_char_name = self.root.curr_char_data['charName']
         self.go_to_game()

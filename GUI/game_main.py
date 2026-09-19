@@ -102,6 +102,7 @@ class MainGameWidget(util.GroupBoxWidget):
         self.right_panel()
         # Check if there is an event in this room.
         self.check_for_event()
+
         # Show the widget
         self.show()
 
@@ -118,6 +119,7 @@ class MainGameWidget(util.GroupBoxWidget):
             arg_str = ', '.join(event_split[1:])
             # Using getattr, we can access the method in self.room_events that is associated with evt
             getattr(self.room_events, evt, None)(arg_str)
+
 
     def get_char_data(self):
         # Select character data from db based on curr_char_id
@@ -172,6 +174,7 @@ class MainGameWidget(util.GroupBoxWidget):
         self.lookables = list(self.room_items.keys()) + self.people
         # self.location_name, self.event
         self.location_name = self.room_data['locationName']
+        self.root.curr_location_name = self.location_name
         self.event = self.room_data['event']
 
     def goto_conversation(self, *args, **kwargs):
@@ -201,7 +204,6 @@ class MainGameWidget(util.GroupBoxWidget):
         qt.QtCore.QTimer.singleShot(0, self.entry_box.setFocus)
 
     def room_check(self):
-        # WORKING HERE
         # MAybe make it in here so that it can identify multiple of an item like it does everywhere else
         # Check People
         db_people = [x[0] for x in self.root.sql.select('main',

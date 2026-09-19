@@ -1,6 +1,5 @@
 from GUI import qt_classes as qt
 
-
 def db_write_string_maker(item_data, *args, **kwargs):
     # If item_data is a dictionary, we will append its contents to a list
     if isinstance(item_data, dict):
@@ -30,16 +29,14 @@ def add_credits(root, main_game, qty, *args, **kwargs):
                     where={'char_id': root.curr_char_id})
 
 
+def conversation_had_check(root, *args, **kwargs):
 
-
-def conversation_had_check(root, conv_window, conversation, *args, **kwargs):
-    res = root.sql.select('main',
+    res =  root.sql.select('main',
                           table='ConversationsHad',
                           where={'char_id': root.curr_char_id,
-                                 'convName': conversation.current_conversation},
+                                 'convName': root.active_conversation},
                           where_and=True)
     if res:
-        conv_window.update_main('You have already spoken with this person.')
         return True
     return False
 
@@ -72,10 +69,14 @@ def display_string_maker(root, item_data, *args, **kwargs):
         return f'{', '.join(item_data[:-1])}, and {item_data[-1]}'
 
 def end_conversation(root, conv_window, *args, **kwargs):
-    root.sql.insert('main',
-                    table='ConversationsHad',
-                    data={'convName': root.active_conversation,
-                          'char_id': root.curr_char_id})
+    if not root.sql.select('main',
+                            table='ConversationsHad',
+                            where={'char_id': root.curr_char_id}):
+        if conv_window.conversations.game_state['passed']:
+            root.sql.insert('main',
+                            table='ConversationsHad',
+                            data={'convName': root.active_conversation,
+                                  'char_id': root.curr_char_id})
     root.active_conversation = None
     conv_window.go_to_game()
 
@@ -92,6 +93,22 @@ def get_bag_contents(root, *args, **kwargs):
     #                                        where={'char_id': root.curr_char_id})[0])
 
     return res[1], item_dict
+
+def get_conversation_data(root):
+    cols = ['system_prompt',
+            'start_text',
+            'end_text',
+            'signal_text_positive',
+            'signal_text_negative',
+            'exit_info',
+            'background_info']
+
+    res = root.sql.select('main',
+                           table='Conversations',
+                           columns=cols,
+                           where={'conversationName': root.active_conversation})[0]
+
+    return {x: (y if y else '') for x, y in zip(cols, res)}
 
 
 def get_indef_article(item, *args, **kwargs):

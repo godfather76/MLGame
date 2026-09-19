@@ -2,6 +2,7 @@ from GUI import qt_classes as qt
 from GUI import utility_classes as util
 from GUI import game_main
 from Core import conversations
+from Core import conversation_exits
 from Core import helpers
 
 
@@ -31,7 +32,7 @@ class ConversationWidget(util.GroupBoxWidget):
         self.button_dict = {}
         self.root = root
         self.conversations = conversations.Conversations(self.root, self)
-        # EXCLUDE THE METHODS THAT AREN'T CONVOS?
+        self.conversation_exits = conversation_exits.ConversationExits(self.root, self)
         self.main_display_layout()
         self.show()
         qt.QtCore.QTimer.singleShot(0, self.run_conversation)
@@ -47,7 +48,8 @@ class ConversationWidget(util.GroupBoxWidget):
                   game_main.MainGameWidget)
 
     def run_conversation(self, *args, **kwargs):
-        getattr(self.conversations, self.root.active_conversation, None)()
+        helpers.main_display_message = self.conversations.converse()
+
 
     def update_main(self, text, *args, **kwargs):
         self.curr_display += f'{text}\n'
@@ -111,7 +113,7 @@ class ConversationWidget(util.GroupBoxWidget):
         self.worker.start()
 
     def handle_response(self, reply_text, *args, **kwargs):
-        self.update_main(f'Specialist: {reply_text}\n')
+        self.update_main(f'{self.root.active_conversation_NPC}: {reply_text}\n')
 
         # Re-enable controls
         self.entry_box.setEnabled(True)
@@ -120,8 +122,15 @@ class ConversationWidget(util.GroupBoxWidget):
 
         # 4. Handle end-of-conversation criteria
         if self.conversations.is_finished:
-            self.update_main(
-                "*** ASSESSMENT COMPLETE. Press 'Back' to return to game. ***"
-            )
-            self.entry_box.setEnabled(False)
-            self.send_button.setEnabled(False)
+            if self.conversations.game_state['passed']:
+                exit_info =  self.root.active_conversation_data.get('exit_info')
+                if exit_info:
+                    getattr(self.conversation_exits, exit_info, None)()
+                self.update_main(
+                    self.root.active_conversation_data['end_text']
+                )
+                self.entry_box.setEnabled(False)
+                self.send_button.setEnabled(False)
+            else:
+                pass
+

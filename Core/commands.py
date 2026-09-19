@@ -309,11 +309,15 @@ class CommandStructure:
             if not conversation:
                 self.main_game.update_main('They don\'t seem to want to speak to you.')
             else:
-                # Otherwise, we now have the name of our conversation in self.root.conversations class
                 # Set the root var to the conversation from the db
                 self.root.active_conversation = conversation
-                # Load the conversation widget
-                self.main_game.goto_conversation()
+                if not helpers.conversation_had_check(self.root):
+                    # Otherwise, we now have the name of our conversation in self.root.conversations class
+                    self.root.active_conversation_NPC = person
+                    # Load the conversation widget
+                    self.main_game.goto_conversation()
+                else:
+                    self.main_game.update_main('They have already spoken with you as much as they are willing.')
 
     @qt.QtCore.Slot()
     def status(self, *args, **kwargs):

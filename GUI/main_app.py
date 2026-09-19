@@ -8,7 +8,7 @@ import sys
 # Main window will remain here and the centralWidget will change
 class MainWindow(qt.QtWidgets.QMainWindow):
     # dev_mode will log me directly in so I don't go crazy retyping my username and password
-    dev_mode = False
+    dev_mode = True
     # dev_mode = True
     # This allows me to easily select a different user for dev mode
     dev_user_id = 1
@@ -30,6 +30,12 @@ class MainWindow(qt.QtWidgets.QMainWindow):
     curr_user_id = None
     curr_char_id = None
     curr_char_name = None
+    curr_char_data = {}
+    curr_location_name = None
+    active_conversation = None
+    active_conversation_NPC = None
+    active_conversation_data = None
+
 
     def __init__(self, main_app, config, *args, **kwargs):
         # This is root
